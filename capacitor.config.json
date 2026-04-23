@@ -1,0 +1,9 @@
+{
+  "appId": "com.inmobiliaria.vale_salida",
+  "appName": "Vale Salida Almacén",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
