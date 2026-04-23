@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Vale de Salida - Inmobiliaria C.A.</title>
+    <!-- SheetJS (XLSX) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <!-- html2pdf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Inter', 'Roboto', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f1f5f9 0%, #e6edf4 100%);
+            margin: 0;
+            min-height: 100vh;
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(2px);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            padding: 1.2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 0.2rem 0;
+            background: linear-gradient(135deg, #1E2A5E, #2A3F7E);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .sub {
+            color: #4b5563;
+            border-left: 4px solid #3b82f6;
+            padding-left: 0.75rem;
+            margin: 0 0 1rem 0;
+            font-size: 0.8rem;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin-bottom: 1.2rem;
+            background: #ffffffcc;
+            padding: 0.8rem;
+            border-radius: 1.2rem;
+            align-items: flex-end;
+        }
+
+        .file-area, .sheet-area, .options-area, .search-area, .pdf-area {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #2c3e66;
+            margin-bottom: 0.2rem;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 0.5rem 0.8rem;
+            border-radius: 1rem;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        button {
+            background: #1e293b;
+            color: white;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            margin-top: 0.8rem;
+        }
+
+        .pdf-btn {
+            background: #2c5f2d;
+        }
+        .pdf-btn:hover {
+            background: #1f4520;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .checkbox-wrapper input {
+            width: 1.2rem;
+            margin: 0;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin: 0.5rem 0;
+            font-size: 0.75rem;
+            background: #f8fafc;
+            padding: 0.4rem 0.8rem;
+            border-radius: 2rem;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            max-height: 55vh;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            min-width: 500px;
+        }
+
+        th {
+            background: #f1f5f9;
+            padding: 0.6rem 0.8rem;
+            border-bottom: 2px solid #cbd5e1;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            text-align: left;
+        }
+
+        td {
+            padding: 0.5rem 0.8rem;
+            border-bottom: 1px solid #eef2f6;
+            vertical-align: middle;
+        }
+
+        .salida-input {
+            width: 100%;
+            padding: 0.4rem;
+            border-radius: 0.6rem;
+            border: 1px solid #cbd5e6;
+            background: #fefce8;
+            font-size: 0.8rem;
+        }
+
+        .footer-note {
+            margin-top: 0.8rem;
+            font-size: 0.65rem;
+            text-align: center;
+            color: #5b6e8c;
+        }
+
+        @media (max-width: 700px) {
+            body { padding: 0.5rem; }
+            .app-container { padding: 1rem; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            th, td { padding: 0.4rem 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <h1>📦 Vale de Salida de Almacén</h1>
+    <div class="sub">Carga Excel (.xlsx/.xls) | Filtra | Añade cantidades en "Salida" | Exporta PDF solo con filas llenas</div>
+
+    <div class="toolbar">
+        <div class="file-area">
+            <label>📁 Archivo</label>
+            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .xlsm">
+        </div>
+        <div class="sheet-area">
+            <label>📄 Hoja</label>
+            <select id="sheetSelect" disabled><option>— Cargar archivo —</option></select>
+        </div>
+        <div class="options-area">
+            <label>⚙️ Config</label>
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="headerToggle" checked>
+                <label>Usar 1ª fila como encabezados</label>
+            </div>
+        </div>
+        <div class="search-area">
+            <label>🔍 Filtrar palabra</label>
+            <input type="text" id="searchInput" placeholder="Buscar en todas las columnas...">
+        </div>
+        <div class="pdf-area">
+            <label>📄 Exportar</label>
+            <button id="exportPdfBtn" class="pdf-btn">📑 Generar PDF (solo filas con Salida)</button>
+        </div>
+    </div>
+
+    <div class="stats">
+        <span>📌 <span id="rowCount">0</span> filas mostradas</span>
+        <span class="badge" id="totalInfo">Cargue un archivo Excel</span>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="dataTable">
+            <thead id="tableHeader"><tr><th>Cargando...</th></tr></thead>
+            <tbody id="tableBody"><tr><td>Esperando archivo Excel</td></tr></tbody>
+        </table>
+    </div>
+    <div class="footer-note">
+        ✏️ Escribe cualquier valor en la columna "Salida".<br>
+        🖨️ Al exportar a PDF se incluirá el título "VALE DE SALIDA DE ALMACEN DE LA INMOBILIARIA C.A.," y SOLO las filas con datos en "Salida".
+    </div>
+</div>
+
+<script>
+    // ---------- ESTADO GLOBAL ----------
+    let workbookGlobal = null;
+    let currentSheetName = null;
+    let rawHeaders = [];
+    let rawDataRows = [];          // { rowData, originalIndex }
+    let currentSearchTerm = "";
+    let salidaMap = new Map();      // originalIndex -> valor
+    let debounceTimer = null;
+
+    const fileInput = document.getElementById('fileInput');
+    const sheetSelect = document.getElementById('sheetSelect');
+    const headerToggle = document.getElementById('headerToggle');
+    const searchInput = document.getElementById('searchInput');
+    const tableHeader = document.getElementById('tableHeader');
+    const tableBody = document.getElementById('tableBody');
+    const rowCountSpan = document.getElementById('rowCount');
+    const totalInfoSpan = document.getElementById('totalInfo');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+
+    // ---------- AUXILIARES ----------
+    function cellToString(cellValue) {
+        if (cellValue === undefined || cellValue === null) return "";
+        if (typeof cellValue === 'string') return cellValue;
+        if (typeof cellValue === 'number') return cellValue.toString();
+        if (cellValue instanceof Date) return cellValue.toLocaleDateString();
+        return String(cellValue);
+    }
+
+    function extractHeadersAndRowsWithMeta(sheet, useFirstRowAsHeader) {
+        let rawMatrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        if (!rawMatrix || rawMatrix.length === 0) return { headers: [], rowsMeta: [] };
+        let maxCols = 0;
+        for (let r = 0; r < rawMatrix.length; r++) if (rawMatrix[r].length > maxCols) maxCols = rawMatrix[r].length;
+        const paddedMatrix = rawMatrix.map(row => {
+            const newRow = [...row];
+            while (newRow.length < maxCols) newRow.push("");
+            return newRow.map(cell => cellToString(cell));
+        });
+        let headers = [], rowsMeta = [];
+        if (useFirstRowAsHeader && paddedMatrix.length > 0) {
+            headers = paddedMatrix[0].map((h, idx) => (h && h.trim() !== "") ? h.trim() : `Columna_${idx+1}`);
+            for (let i = 1; i < paddedMatrix.length; i++) {
+                rowsMeta.push({ rowData: paddedMatrix[i], originalIndex: i-1 });
+            }
+        } else {
+            const colCount = maxCols || 1;
+            headers = Array.from({ length: colCount }, (_, i) => `Columna ${i+1}`);
+            for (let i = 0; i < paddedMatrix.length; i++) {
+                rowsMeta.push({ rowData: paddedMatrix[i], originalIndex: i });
+            }
+        }
+        return { headers, rowsMeta };
+    }
+
+    function renderTableWithSalida(headers, filteredRowsMeta) {
+        tableHeader.innerHTML = "";
+        if (!headers || headers.length === 0) {
+            const tr = document.createElement('tr');
+            const th = document.createElement('th');
+            th.textContent = "Sin columnas";
+            tr.appendChild(th);
+            tableHeader.appendChild(tr);
+            tableBody.innerHTML = '<tr><td colspan="100">No hay datos en esta hoja</td></tr>';
+            rowCountSpan.textContent = "0";
+            totalInfoSpan.innerHTML = "📭 Sin datos";
+            return;
+        }
+        const headerRow = document.createElement('tr');
+        headers.forEach(h => {
+            const th = document.createElement('th');
+            th.textContent = h;
+            headerRow.appendChild(th);
+        });
+        const salidaTh = document.createElement('th');
+        salidaTh.textContent = "📝 Salida";
+        salidaTh.style.backgroundColor = "#e6f7e6";
+        headerRow.appendChild(salidaTh);
+        tableHeader.appendChild(headerRow);
+
+        if (filteredRowsMeta.length === 0) {
+            const emptyRow = document.createElement('tr');
+            const emptyCell = document.createElement('td');
+            emptyCell.colSpan = headers.length + 1;
+            emptyCell.textContent = "🔎 No hay coincidencias con el filtro actual.";
+            emptyCell.style.textAlign = "center";
+            emptyRow.appendChild(emptyCell);
+            tableBody.innerHTML = "";
+            tableBody.appendChild(emptyRow);
+            rowCountSpan.textContent = "0";
+            totalInfoSpan.innerHTML = `🧹 0 coincidencias de ${rawDataRows.length} filas totales`;
+            return;
+        }
+
+        tableBody.innerHTML = "";
+        for (let i = 0; i < filteredRowsMeta.length; i++) {
+            const { rowData, originalIndex } = filteredRowsMeta[i];
+            const tr = document.createElement('tr');
+            for (let col = 0; col < headers.length; col++) {
+                const td = document.createElement('td');
+                let val = (col < rowData.length) ? rowData[col] : "";
+                td.textContent = val;
+                tr.appendChild(td);
+            }
+            const tdSalida = document.createElement('td');
+            const input = document.createElement('input');
+            input.type = "text";
+            input.placeholder = "Cantidad / texto";
+            input.className = "salida-input";
+            input.value = salidaMap.get(originalIndex) || "";
+            input.addEventListener('input', (idx => (e) => salidaMap.set(idx, e.target.value))(originalIndex));
+            tdSalida.appendChild(input);
+            tr.appendChild(tdSalida);
+            tableBody.appendChild(tr);
+        }
+        rowCountSpan.textContent = filteredRowsMeta.length;
+        totalInfoSpan.innerHTML = `📊 ${filteredRowsMeta.length} / ${rawDataRows.length} filas · "Salida" editable`;
+    }
+
+    function applyFilterAndRender() {
+        if (!rawDataRows.length || !rawHeaders.length) {
+            renderTableWithSalida(rawHeaders, []);
+            return;
+        }
+        const search = currentSearchTerm.trim().toLowerCase();
+        if (search === "") {
+            const all = rawDataRows.map(item => ({ rowData: item.rowData, originalIndex: item.originalIndex }));
+            renderTableWithSalida(rawHeaders, all);
+            return;
+        }
+        const filtered = rawDataRows.filter(item => {
+            return item.rowData.some(cell => cell && cell.toString().toLowerCase().includes(search));
+        }).map(item => ({ rowData: item.rowData, originalIndex: item.originalIndex }));
+        renderTableWithSalida(rawHeaders, filtered);
+    }
+
+    function loadCurrentSheet(resetMap = true) {
+        if (!workbookGlobal || !currentSheetName) {
+            rawHeaders = []; rawDataRows = [];
+            if (resetMap) salidaMap.clear();
+            renderTableWithSalida([], []);
+            return;
+        }
+        try {
+            const sheet = workbookGlobal.Sheets[currentSheetName];
+            if (!sheet) throw new Error("Hoja no encontrada");
+            const useHeader = headerToggle.checked;
+            const { headers, rowsMeta } = extractHeadersAndRowsWithMeta(sheet, useHeader);
+            rawHeaders = headers;
+            rawDataRows = rowsMeta;
+            if (resetMap) salidaMap.clear();
+            else {
+                const existing = new Set(rawDataRows.map(r => r.originalIndex));
+                for (let k of salidaMap.keys()) if (!existing.has(k)) salidaMap.delete(k);
+            }
+            applyFilterAndRender();
+        } catch(err) {
+            console.error(err);
+            rawHeaders = []; rawDataRows = []; salidaMap.clear();
+            renderTableWithSalida([], []);
+            totalInfoSpan.innerHTML = "❌ Error al leer hoja";
+        }
+    }
+
+    function populateSheetSelector(workbook) {
+        const sheets = workbook.SheetNames;
+        sheetSelect.innerHTML = "";
+        if (!sheets.length) {
+            sheetSelect.disabled = true;
+            return;
+        }
+        sheets.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            sheetSelect.appendChild(opt);
+        });
+        sheetSelect.disabled = false;
+        currentSheetName = sheets[0];
+        sheetSelect.value = currentSheetName;
+    }
+
+    function processExcelFile(data) {
+        try {
+            const workbook = XLSX.read(data, { type: 'array', defval: "" });
+            workbookGlobal = workbook;
+            if (!workbook.SheetNames.length) throw new Error("No hay hojas");
+            populateSheetSelector(workbook);
+            currentSearchTerm = "";
+            searchInput.value = "";
+            salidaMap.clear();
+            loadCurrentSheet(true);
+        } catch(err) {
+            alert("Error al leer Excel: " + err.message);
+            workbookGlobal = null;
+            sheetSelect.innerHTML = '<option>— Cargar archivo —</option>';
+            sheetSelect.disabled = true;
+            rawHeaders = []; rawDataRows = []; salidaMap.clear();
+            renderTableWithSalida([], []);
+            totalInfoSpan.innerHTML = "❌ Error de archivo";
+        }
+    }
+
+    function handleFileUpload(file) {
+        if (!file) return;
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['xlsx','xls','xlsm','csv'].includes(ext)) {
+            alert("Formato no soportado. Use .xlsx, .xls, .xlsm o .csv");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = e => processExcelFile(e.target.result);
+        reader.onerror = () => alert("Error al leer archivo");
+        reader.readAsArrayBuffer(file);
+    }
+
+    // ---------- EXPORTAR A PDF (solo filas con salida no vacía) ----------
+    function exportToPDF() {
+        if (!rawHeaders.length || !rawDataRows.length) {
+            alert("No hay datos cargados. Cargue un archivo Excel primero.");
+            return;
+        }
+        // Obtener filas según filtro de búsqueda actual
+        let filteredBySearch = rawDataRows;
+        const searchTerm = currentSearchTerm.trim().toLowerCase();
+        if (searchTerm !== "") {
+            filteredBySearch = rawDataRows.filter(item =>
+                item.rowData.some(cell => cell && cell.toString().toLowerCase().includes(searchTerm))
+            );
+        }
+        // Filtrar solo aquellas con valor en salidaMap (no vacío)
+        const rowsWithSalida = filteredBySearch.filter(item => {
+            const val = salidaMap.get(item.originalIndex);
+            return val && val.trim() !== "";
+        });
+        if (rowsWithSalida.length === 0) {
+            alert("No hay filas con valores en la columna 'Salida'. Escriba algo antes de exportar.");
+            return;
+        }
+
+        // Construir contenedor para PDF
+        const pdfContainer = document.createElement('div');
+        pdfContainer.style.padding = "1rem";
+        pdfContainer.style.fontFamily = "system-ui, 'Segoe UI', Roboto, sans-serif";
+        // Título solicitado
+        const title = document.createElement('h2');
+        title.textContent = "VALE DE SALIDA DE ALMACEN DE LA INMOBILIARIA C.A.,";
+        title.style.textAlign = "center";
+        title.style.marginBottom = "1rem";
+        title.style.color = "#1e3a2f";
+        title.style.borderBottom = "2px solid #2c5f2d";
+        title.style.paddingBottom = "0.5rem";
+        title.style.fontSize = "1.4rem";
+        pdfContainer.appendChild(title);
+
+        const table = document.createElement('table');
+        table.style.width = "100%";
+        table.style.borderCollapse = "collapse";
+        table.style.fontSize = "10pt";
+        // Cabeceras
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        rawHeaders.forEach(h => {
+            const th = document.createElement('th');
+            th.textContent = h;
+            th.style.border = "1px solid #999";
+            th.style.padding = "6px";
+            th.style.backgroundColor = "#e2f0e2";
+            headerRow.appendChild(th);
+        });
+        const salidaHeader = document.createElement('th');
+        salidaHeader.textContent = "Salida";
+        salidaHeader.style.border = "1px solid #999";
+        salidaHeader.style.padding = "6px";
+        salidaHeader.style.backgroundColor = "#e2f0e2";
+        headerRow.appendChild(salidaHeader);
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        for (const item of rowsWithSalida) {
+            const { rowData, originalIndex } = item;
+            const tr = document.createElement('tr');
+            for (let col = 0; col < rawHeaders.length; col++) {
+                const td = document.createElement('td');
+                td.textContent = (col < rowData.length) ? rowData[col] : "";
+                td.style.border = "1px solid #ccc";
+                td.style.padding = "5px";
+                tr.appendChild(td);
+            }
+            const tdSalida = document.createElement('td');
+            tdSalida.textContent = salidaMap.get(originalIndex) || "";
+            tdSalida.style.border = "1px solid #ccc";
+            tdSalida.style.padding = "5px";
+            tdSalida.style.backgroundColor = "#f9f5e8";
+            tr.appendChild(tdSalida);
+            tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        pdfContainer.appendChild(table);
+
+        // Pie de fecha
+        const footer = document.createElement('p');
+        footer.style.fontSize = "8pt";
+        footer.style.textAlign = "right";
+        footer.style.marginTop = "1rem";
+        footer.textContent = `Generado: ${new Date().toLocaleString()}`;
+        pdfContainer.appendChild(footer);
+
+        const opt = {
+            margin: [0.5, 0.5, 0.5, 0.5],
+            filename: `VALE_SALIDA_${new Date().toISOString().slice(0,19)}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, letterRendering: true },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+        };
+        const btn = exportPdfBtn;
+        const originalText = btn.innerText;
+        btn.innerText = "⏳ Generando PDF...";
+        btn.disabled = true;
+        html2pdf().set(opt).from(pdfContainer).save().then(() => {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }).catch(err => {
+            console.error(err);
+            alert("Error al generar PDF");
+            btn.innerText = originalText;
+            btn.disabled = false;
+        });
+    }
+
+    // ---------- EVENTOS ----------
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) handleFileUpload(e.target.files[0]);
+        else {
+            workbookGlobal = null;
+            sheetSelect.innerHTML = '<option>— Cargar archivo —</option>';
+            sheetSelect.disabled = true;
+            rawHeaders = []; rawDataRows = []; salidaMap.clear();
+            renderTableWithSalida([], []);
+            currentSearchTerm = "";
+            searchInput.value = "";
+            totalInfoSpan.innerHTML = "📂 Esperando archivo...";
+        }
+    });
+    sheetSelect.addEventListener('change', () => {
+        if (workbookGlobal && sheetSelect.value) {
+            currentSheetName = sheetSelect.value;
+            salidaMap.clear();
+            loadCurrentSheet(true);
+        }
+    });
+    headerToggle.addEventListener('change', () => {
+        if (workbookGlobal && currentSheetName) {
+            salidaMap.clear();
+            loadCurrentSheet(true);
+        }
+    });
+    searchInput.addEventListener('input', () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            currentSearchTerm = searchInput.value;
+            if (workbookGlobal && currentSheetName) applyFilterAndRender();
+            else renderTableWithSalida([], []);
+        }, 300);
+    });
+    exportPdfBtn.addEventListener('click', exportToPDF);
+
+    // Inicializar
+    renderTableWithSalida([], []);
+    totalInfoSpan.innerHTML = "✅ Cargue un archivo Excel";
+</script>
+</body>
+</html>
